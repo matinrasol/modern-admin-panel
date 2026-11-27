@@ -1,6 +1,48 @@
 <!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>پنل مدیریت | مدرن</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#0b0907;color:#fff8e9;font-family:Tahoma,Arial,sans-serif;padding:22px}.wrap{max-width:1100px;margin:auto}.panel{background:#17120d;border:1px solid #9d762f;border-radius:16px;padding:20px;margin:16px 0}h1,h2{color:#ffd477;margin-top:0}input,textarea,button{font:inherit;border-radius:9px;padding:12px;border:1px solid #9d762f}input,textarea{display:block;background:#090807;color:white;width:100%;margin:8px 0 14px}button{background:#eab34c;color:#1a1207;font-weight:bold;cursor:pointer}button.secondary{background:#27211a;color:#fff8e9}.muted{color:#cfc3ad}.hidden{display:none}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.row>*{flex:1;min-width:180px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}label{display:block;color:#e8d8b9}.order{border-top:1px solid #5e4725;padding:14px 0}.status{display:inline-block;padding:4px 9px;border:1px solid #9d762f;border-radius:20px}.status-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}.status-controls select{font:inherit;background:#090807;color:#fff8e9;border:1px solid #9d762f;border-radius:9px;padding:10px}#message,#formMsg{white-space:pre-wrap}.hint{font-size:.85rem;color:#cfc3ad}.msg-card{border-top:1px solid #5e4725;padding:12px 0}.msg-card textarea{min-height:90px}.preview{background:#090807;border:1px dashed #9d762f;border-radius:10px;padding:12px;white-space:pre-wrap;margin:8px 0}@media(max-width:600px){body{padding:10px}.panel{padding:14px}}
+:root{color-scheme:dark;--bg:#080d18;--surface:#111a2b;--surface2:#172238;--gold:#c9a45c;--gold2:#e6c98d;--text:#f4f0e7;--muted:#a8b1c2;--line:rgba(201,164,92,.24);--shadow:0 18px 50px rgba(0,0,0,.28)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 85% -10%,rgba(201,164,92,.13),transparent 34%),linear-gradient(145deg,#080d18 0%,#0c1423 55%,#101a2b 100%);color:var(--text);font-family:Tahoma,Arial,sans-serif;padding:30px 22px}
+.wrap{max-width:1180px;margin:auto}
+h1{font-size:clamp(1.55rem,3vw,2.25rem);letter-spacing:-.5px;margin:0 0 8px;color:#f7edda}
+h1:before{content:"";display:inline-block;width:5px;height:29px;border-radius:8px;background:linear-gradient(var(--gold2),#8b672f);margin-left:13px;vertical-align:-5px}
+h2{font-size:1.15rem;color:var(--gold2);margin:0 0 16px}
+h3{color:#f1d9a8;font-size:1.05rem}
+.wrap>p.muted{margin:0 0 25px;padding-right:19px;color:var(--muted)}
+.panel{position:relative;background:linear-gradient(145deg,rgba(23,34,56,.96),rgba(15,24,40,.97));border:1px solid var(--line);border-radius:20px;padding:24px;margin:18px 0;box-shadow:var(--shadow);overflow:hidden}
+.panel:after{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,rgba(230,201,141,.55),transparent);pointer-events:none}
+input,textarea,button{font:inherit;border-radius:11px;padding:12px 14px;border:1px solid rgba(201,164,92,.3);transition:border-color .2s,background .2s,transform .2s,box-shadow .2s}
+input,textarea{display:block;background:rgba(5,10,19,.62);color:var(--text);width:100%;margin:8px 0 15px;outline:none}
+input:focus,textarea:focus,.status-controls select:focus{border-color:var(--gold2);box-shadow:0 0 0 3px rgba(201,164,92,.12)}
+input::placeholder,textarea::placeholder{color:#748096}
+button{background:linear-gradient(135deg,#e2c17e,#b78c45);color:#17130b;font-weight:bold;cursor:pointer;border:1px solid #e3c98f;box-shadow:0 7px 18px rgba(0,0,0,.18)}
+button:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(0,0,0,.25)}
+button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+button.secondary{background:rgba(255,255,255,.045);color:#e9dfca;border:1px solid var(--line);box-shadow:none}
+button.secondary:hover{background:rgba(201,164,92,.1)}
+.muted,.hint{color:var(--muted)}
+.hidden{display:none}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1;min-width:180px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 16px}
+label{display:block;color:#d9cdb7;font-size:.92rem}
+.order{position:relative;background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));border:1px solid rgba(201,164,92,.16);border-radius:15px;padding:18px;margin:13px 0}
+.order h3{margin:0 0 13px}
+.order p{color:#d4d9e2;line-height:1.9;margin:6px 0}
+.status{display:inline-block;padding:5px 12px;border:1px solid rgba(201,164,92,.42);background:rgba(201,164,92,.1);color:#f0d9a9;border-radius:30px;font-size:.86rem}
+.status-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:13px}
+.status-controls label{flex:1;min-width:200px}
+.status-controls select{display:block;width:100%;margin-top:8px;font:inherit;background:#0a1220;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:11px}
+#message,#formMsg{white-space:pre-wrap;line-height:1.8}
+.hint{font-size:.84rem;line-height:1.8}
+.msg-card{border-top:1px solid var(--line);padding:12px 0}
+.msg-card textarea{min-height:90px}
+.preview{background:rgba(5,10,19,.7);border:1px dashed var(--gold);border-radius:12px;padding:14px;white-space:pre-wrap;margin:10px 0;line-height:1.9;color:#f3e6cc}
+#login{max-width:560px;margin:30px auto}
+#dashboard>.panel:first-child{border-color:rgba(230,201,141,.38)}
+#orders{margin-top:10px}
+code{color:var(--gold2);background:rgba(201,164,92,.09);padding:2px 5px;border-radius:5px}
+@media(max-width:650px){body{padding:16px 11px}.panel{padding:17px;margin:13px 0;border-radius:16px}.row{align-items:stretch}.row>*{min-width:100%}.status-controls>*{width:100%}button{min-height:44px}.wrap>p.muted{padding-right:17px}}
 </style></head><body><div class="wrap"><h1>پنل مدیریت کابینت‌سازی مدرن</h1><p class="muted">ورود امن با حساب Appwrite</p>
 <section id="login" class="panel"><h2>ورود مدیر</h2><label>ایمیل حساب Appwrite<input id="email" type="email" autocomplete="username"></label><label>رمز عبور حساب Appwrite<input id="password" type="password" autocomplete="current-password"></label><button id="loginBtn">ورود</button><p id="loginMsg" class="muted"></p></section>
 <section id="dashboard" class="hidden">
