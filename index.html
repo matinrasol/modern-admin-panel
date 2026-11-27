@@ -21,6 +21,11 @@ button{background:linear-gradient(135deg,#e2c17e,#b78c45);color:#17130b;font-wei
 @media(max-width:800px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{grid-template-columns:1fr 1fr}.filters input{grid-column:1/-1}}
 @media(max-width:560px){body{padding:14px 10px}header{align-items:flex-start}.brand-mark{display:none}.panel{padding:16px;margin:12px 0;border-radius:15px}.stats{grid-template-columns:1fr 1fr}.stat{padding:13px}.stat strong{font-size:1.05rem}.filters{grid-template-columns:1fr}.filters input{grid-column:auto}.row>*{min-width:100%}.status-controls>*{width:100%}button{min-height:43px}}
 @media print{body{background:#fff;color:#111;padding:0}.wrap,header,.tabs,#login,#dashboard{display:none!important}#printArea{display:block!important;color:#111;padding:24px;font-family:Tahoma,Arial}#printArea h1,#printArea h2,#printArea p{color:#111}.printbox{border:1px solid #aaa;padding:18px;border-radius:8px}.printbox table{min-width:0}.printbox th,.printbox td{color:#111;border-color:#ddd}}
+
+#editModal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+#editModal.hidden{display:none!important}
+.edit-dialog{width:min(760px,100%);max-height:92vh;overflow:auto;background:#111a2b;border:1px solid var(--gold);border-radius:18px;padding:22px;box-shadow:0 25px 80px #000}
+.edit-actions{display:flex;gap:10px;justify-content:flex-start;flex-wrap:wrap}
 </style></head>
 <body>
 <div class="wrap">
@@ -57,6 +62,30 @@ button{background:linear-gradient(135deg,#e2c17e,#b78c45);color:#17130b;font-wei
 <label>آماده تحویل<textarea id="tpl-ready">جناب آقای {name}، سفارش شما با متراژ {metrage} متر آماده تحویل است.</textarea></label>
 </div><button id="saveTemplates">ذخیره متن پیام‌ها</button> <span id="templateMsg" class="muted"></span><div class="notice" style="margin-top:16px">برای جلوگیری از ارسال ناخواسته، هیچ پیامکی از این نسخه ارسال نمی‌شود. اتصال پیامک را بعداً پس از رفع مشکل ارتباط سرویس بررسی می‌کنیم.</div></div></section>
 </section></div>
+
+<div id="editModal" class="hidden">
+  <div class="edit-dialog">
+    <div class="order-top"><h2>ویرایش سفارش</h2><button type="button" class="secondary" id="closeEdit">بستن</button></div>
+    <form id="editForm">
+      <input type="hidden" name="order_id">
+      <div class="grid">
+        <label>نام مشتری<input name="customer_name" required maxlength="150"></label>
+        <label>شماره تماس<input name="customer_phone" required maxlength="30"></label>
+        <label>نوع پروژه<input name="project_type" required maxlength="100"></label>
+        <label>متراژ<input name="metrage" type="number" min="0" step="0.01" required></label>
+        <label>جنس<input name="material" maxlength="200"></label>
+        <label>رنگ<input name="color" maxlength="200"></label>
+        <label>مبلغ کل (تومان)<input name="total_amount" type="number" min="0" step="1" required></label>
+        <label>پیش‌پرداخت (تومان)<input name="advance_amount" type="number" min="0" step="1" required></label>
+        <label>تاریخ تحویل<input name="delivery_date" type="date"></label>
+      </div>
+      <label>توضیحات<textarea name="notes" rows="3" maxlength="2000"></textarea></label>
+      <p class="hint">کد سفارش و وضعیت سفارش در این فرم تغییر نمی‌کنند. مانده به‌صورت خودکار محاسبه می‌شود.</p>
+      <div class="edit-actions"><button id="saveEdit" type="submit">ذخیره تغییرات</button><button type="button" class="secondary" id="cancelEdit">انصراف</button></div>
+      <p id="editMsg" class="hint"></p>
+    </form>
+  </div>
+</div>
 <div id="printArea" class="hidden"></div>
 <script type="module">
 import {Client,Account,Functions} from "https://cdn.jsdelivr.net/npm/appwrite@17.0.0/+esm";
@@ -74,7 +103,7 @@ const total=a.reduce((s,x)=>s+Number(x.total_amount||0),0),adv=a.reduce((s,x)=>s
 $("finTotal").textContent=fmt(total)+" تومان";$("finAdvance").textContent=fmt(adv)+" تومان";$("finRemaining").textContent=fmt(rem)+" تومان";$("finAverage").textContent=fmt(a.length?Math.round(total/a.length):0)+" تومان"}
 function filteredOrders(){let a=[...allOrders],q=$("searchOrders").value.trim().toLowerCase(),s=$("filterStatus").value,sort=$("sortOrders").value;if(q)a=a.filter(o=>[o.customer_name,o.customer_phone,o.order_code,o.project_type].some(v=>String(v||"").toLowerCase().includes(q)));if(s)a=a.filter(o=>o.status===s);a.sort((x,y)=>sort==="amount"?Number(y.total_amount||0)-Number(x.total_amount||0):sort==="old"?String(x.$createdAt||"").localeCompare(String(y.$createdAt||"")):String(y.$createdAt||"").localeCompare(String(x.$createdAt||"")));return a}
 function renderOrders(){const a=filteredOrders();if(!a.length){$("orders").innerHTML='<div class="empty">سفارشی با این مشخصات پیدا نشد.</div>';return}
-$("orders").innerHTML=a.map(o=>`<article class="order"><div class="order-top"><h3>${esc(o.order_code||o.$id||"سفارش")}</h3><span class="status">${esc(statusFa(o.status))}</span></div><p>مشتری: ${esc(o.customer_name)} | تلفن: ${esc(o.customer_phone)}</p><p>پروژه: ${esc(o.project_type)} | متراژ: ${esc(o.metrage)} متر</p><p>جنس: ${esc(o.material||"—")} | رنگ: ${esc(o.color||"—")}</p><p>کل: ${fmt(o.total_amount)} تومان | پیش‌پرداخت: ${fmt(o.advance_amount)} | مانده: ${fmt(o.remaining_amount)}</p><p>تحویل: ${esc(o.delivery_date?String(o.delivery_date).slice(0,10):"ثبت نشده")}</p>${o.notes?`<p class="muted">${esc(o.notes)}</p>`:""}<div class="status-controls"><label>وضعیت سفارش<select class="status-select" data-id="${esc(o.$id)}" data-code="${esc(o.order_code)}"><option value="pending" ${o.status==="pending"?"selected":""}>در انتظار</option><option value="in_progress" ${o.status==="in_progress"?"selected":""}>در حال ساخت</option><option value="completed" ${o.status==="completed"?"selected":""}>تکمیل‌شده</option></select></label><label>مرحله متن پیام<select class="message-stage" data-id="${esc(o.$id)}"><option value="registered">ثبت سفارش</option><option value="cutting">شروع برش</option><option value="cutdone">پایان برش</option><option value="assembly">شروع مونتاژ</option><option value="completed">تکمیل سفارش</option><option value="ready">آماده تحویل</option></select></label><button class="status-save" data-id="${esc(o.$id)}" data-code="${esc(o.order_code)}">ذخیره وضعیت</button><button class="secondary invoice-btn" data-id="${esc(o.$id)}">چاپ فاکتور</button><button class="secondary preview-btn" data-id="${esc(o.$id)}" data-name="${esc(o.customer_name)}" data-metrage="${esc(o.metrage)}">پیش‌نمایش پیام</button></div><div class="preview hidden" id="preview-${esc(o.$id)}"></div><p class="hint">ارسال پیامک در این نسخه غیرفعال است.</p></article>`).join("");
+$("orders").innerHTML=a.map(o=>`<article class="order"><div class="order-top"><h3>${esc(o.order_code||o.$id||"سفارش")}</h3><span class="status">${esc(statusFa(o.status))}</span></div><p>مشتری: ${esc(o.customer_name)} | تلفن: ${esc(o.customer_phone)}</p><p>پروژه: ${esc(o.project_type)} | متراژ: ${esc(o.metrage)} متر</p><p>جنس: ${esc(o.material||"—")} | رنگ: ${esc(o.color||"—")}</p><p>کل: ${fmt(o.total_amount)} تومان | پیش‌پرداخت: ${fmt(o.advance_amount)} | مانده: ${fmt(o.remaining_amount)}</p><p>تحویل: ${esc(o.delivery_date?String(o.delivery_date).slice(0,10):"ثبت نشده")}</p>${o.notes?`<p class="muted">${esc(o.notes)}</p>`:""}<div class="status-controls"><label>وضعیت سفارش<select class="status-select" data-id="${esc(o.$id)}" data-code="${esc(o.order_code)}"><option value="pending" ${o.status==="pending"?"selected":""}>در انتظار</option><option value="in_progress" ${o.status==="in_progress"?"selected":""}>در حال ساخت</option><option value="completed" ${o.status==="completed"?"selected":""}>تکمیل‌شده</option></select></label><label>مرحله متن پیام<select class="message-stage" data-id="${esc(o.$id)}"><option value="registered">ثبت سفارش</option><option value="cutting">شروع برش</option><option value="cutdone">پایان برش</option><option value="assembly">شروع مونتاژ</option><option value="completed">تکمیل سفارش</option><option value="ready">آماده تحویل</option></select></label><button class="status-save" data-id="${esc(o.$id)}" data-code="${esc(o.order_code)}">ذخیره وضعیت</button><button class="secondary edit-btn" data-id="${esc(o.$id)}">ویرایش سفارش</button><button class="secondary invoice-btn" data-id="${esc(o.$id)}">چاپ فاکتور</button><button class="secondary preview-btn" data-id="${esc(o.$id)}" data-name="${esc(o.customer_name)}" data-metrage="${esc(o.metrage)}">پیش‌نمایش پیام</button></div><div class="preview hidden" id="preview-${esc(o.$id)}"></div><p class="hint">ارسال پیامک در این نسخه غیرفعال است.</p></article>`).join("");
 $("orders").querySelectorAll(".status-select").forEach(s=>{const st=$("orders").querySelector(`.message-stage[data-id="${CSS.escape(s.dataset.id)}"]`);if(st)st.value=stageForStatus(s.value)})}
 async function loadOrders(){$("message").textContent="در حال دریافت سفارش‌ها…";try{const d=await runApi("/orders");allOrders=d.orders||[];updateStats(allOrders);renderOrders();renderCustomers();renderDelivery();$("message").textContent=allOrders.length?`${fmt(allOrders.length)} سفارش دریافت شد.`:"";}catch(e){$("message").textContent="دریافت سفارش‌ها ناموفق بود: "+e.message}}
 function updateRemaining(){const t=Number($("total").value)||0,a=Number($("advance").value)||0;$("remaining").value=Math.max(0,t-a)}
@@ -83,7 +112,31 @@ $("orderForm").addEventListener("submit",async e=>{e.preventDefault();const f=ne
 $("formMsg").textContent="در حال ثبت سفارش…";$("submitOrder").disabled=true;try{const r=await runApi("/orders","POST",data);$("formMsg").textContent="سفارش ثبت شد: "+(r.order?.order_code||code);e.currentTarget.reset();$("advance").value="0";updateRemaining();await loadOrders()}catch(err){$("formMsg").textContent="ثبت سفارش ناموفق بود: "+err.message}finally{$("submitOrder").disabled=false}});
 $("loginBtn").addEventListener("click",async()=>{$("loginMsg").textContent="در حال ورود…";try{await account.createEmailPasswordSession($("email").value.trim(),$("password").value);$("login").classList.add("hidden");$("dashboard").classList.remove("hidden");await loadOrders()}catch(e){$("loginMsg").textContent=e.message||"ورود ناموفق بود."}});
 $("orders").addEventListener("change",e=>{if(e.target.matches(".status-select")){const st=$("orders").querySelector(`.message-stage[data-id="${CSS.escape(e.target.dataset.id)}"]`);if(st)st.value=stageForStatus(e.target.value)}});
-$("orders").addEventListener("click",async e=>{const save=e.target.closest(".status-save"),inv=e.target.closest(".invoice-btn"),prev=e.target.closest(".preview-btn");if(inv){const o=allOrders.find(x=>x.$id===inv.dataset.id);if(o)printInvoice(o);return}if(prev){const id=prev.dataset.id,stage=$("orders").querySelector(`.message-stage[data-id="${CSS.escape(id)}"]`)?.value||"registered";let msg=$("tpl-"+stage).value.replaceAll("{name}",prev.dataset.name||"مشتری").replaceAll("{metrage}",prev.dataset.metrage||"");const box=$("preview-"+id);box.textContent=msg;box.classList.remove("hidden");return}if(!save)return;const sel=$("orders").querySelector(`.status-select[data-id="${CSS.escape(save.dataset.id)}"]`);if(!sel)return;save.disabled=true;$("message").textContent="در حال تغییر وضعیت…";try{await runApi("/orders/status","POST",{order_id:save.dataset.id,order_code:save.dataset.code,new_status:sel.value,note:"تغییر وضعیت از پنل مدیریت"});$("message").textContent="وضعیت سفارش با موفقیت تغییر کرد.";await loadOrders()}catch(err){$("message").textContent="تغییر وضعیت ناموفق بود: "+err.message;save.disabled=false}});
+$("orders").addEventListener("click",async e=>{const save=e.target.closest(".status-save"),inv=e.target.closest(".invoice-btn"),prev=e.target.closest(".preview-btn"),edit=e.target.closest(".edit-btn");if(edit){openEdit(edit.dataset.id);return}if(inv){const o=allOrders.find(x=>x.$id===inv.dataset.id);if(o)printInvoice(o);return}if(prev){const id=prev.dataset.id,stage=$("orders").querySelector(`.message-stage[data-id="${CSS.escape(id)}"]`)?.value||"registered";let msg=$("tpl-"+stage).value.replaceAll("{name}",prev.dataset.name||"مشتری").replaceAll("{metrage}",prev.dataset.metrage||"");const box=$("preview-"+id);box.textContent=msg;box.classList.remove("hidden");return}if(!save)return;const sel=$("orders").querySelector(`.status-select[data-id="${CSS.escape(save.dataset.id)}"]`);if(!sel)return;save.disabled=true;$("message").textContent="در حال تغییر وضعیت…";try{await runApi("/orders/status","POST",{order_id:save.dataset.id,order_code:save.dataset.code,new_status:sel.value,note:"تغییر وضعیت از پنل مدیریت"});$("message").textContent="وضعیت سفارش با موفقیت تغییر کرد.";await loadOrders()}catch(err){$("message").textContent="تغییر وضعیت ناموفق بود: "+err.message;save.disabled=false}});
+
+function closeEdit(){ $("editModal").classList.add("hidden"); $("editMsg").textContent=""; }
+function openEdit(id){
+ const o=allOrders.find(x=>x.$id===id); if(!o)return;
+ const f=$("editForm");
+ f.elements.order_id.value=o.$id;
+ for(const k of ["customer_name","customer_phone","project_type","metrage","material","color","total_amount","advance_amount","notes"]) f.elements[k].value=o[k]??"";
+ f.elements.delivery_date.value=o.delivery_date?String(o.delivery_date).slice(0,10):"";
+ $("editMsg").textContent="";
+ $("editModal").classList.remove("hidden");
+}
+$("closeEdit").addEventListener("click",closeEdit);
+$("cancelEdit").addEventListener("click",closeEdit);
+$("editModal").addEventListener("click",e=>{if(e.target===$("editModal"))closeEdit()});
+$("editForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const f=e.currentTarget,fd=new FormData(f),total=Number(fd.get("total_amount")),advance=Number(fd.get("advance_amount"));
+ if(advance>total){$("editMsg").textContent="پیش‌پرداخت نمی‌تواند بیشتر از مبلغ کل باشد.";return}
+ const data={order_id:String(fd.get("order_id")),customer_name:String(fd.get("customer_name")).trim(),customer_phone:String(fd.get("customer_phone")).trim(),project_type:String(fd.get("project_type")).trim(),metrage:Number(fd.get("metrage")),material:String(fd.get("material")).trim(),color:String(fd.get("color")).trim(),total_amount:Math.round(total),advance_amount:Math.round(advance),remaining_amount:Math.max(0,Math.round(total-advance)),notes:String(fd.get("notes")).trim(),delivery_date:fd.get("delivery_date")?new Date(String(fd.get("delivery_date"))+"T12:00:00").toISOString():""};
+ $("saveEdit").disabled=true;$("editMsg").textContent="در حال ذخیره تغییرات…";
+ try{await runApi("/orders/update","POST",data);$("editMsg").textContent="تغییرات ذخیره شد.";await loadOrders();setTimeout(closeEdit,700)}
+ catch(err){$("editMsg").textContent="ذخیره ناموفق بود: "+err.message}
+ finally{$("saveEdit").disabled=false}
+});
 const templateIds=["registered","cutting","cutdone","assembly","completed","ready"];
 function loadTemplates(){templateIds.forEach(k=>{const saved=localStorage.getItem("modern_msg_"+k);if(saved!==null)$("tpl-"+k).value=saved})}
 $("saveTemplates").addEventListener("click",()=>{templateIds.forEach(k=>localStorage.setItem("modern_msg_"+k,$("tpl-"+k).value));$("templateMsg").textContent="متن پیام‌ها در همین مرورگر ذخیره شد."});
